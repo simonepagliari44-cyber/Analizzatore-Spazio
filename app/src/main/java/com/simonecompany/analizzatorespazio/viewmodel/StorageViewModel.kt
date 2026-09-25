@@ -687,7 +687,18 @@ class StorageViewModel(private val appContext: Context) : ViewModel() {
     )
 
     private val OTHER_EXTS = setOf(
-        "apk", "iso", "img", "bin", "cab", "msi", "deb", "rpm", "dmg"
+        "apk", "iso", "img", "bin", "cab", "msi", "deb", "rpm", "dmg",
+        "exe", "com", "bat", "cmd", "sh", "run", "appimage",
+        "dat", "bak", "tmp", "log", "cfg", "ini", "conf", "config",
+        "db", "sqlite", "sqlite3", "realm",
+        "dll", "so", "dylib",
+        "jar", "war", "ear",
+        "py", "pyc", "pyo",
+        "class", "dex", "o", "a",
+        "ttf", "otf", "woff", "woff2",
+        "patch", "diff",
+        "iso", "nrg", "cue", "ccd", "sub",
+        "torrent", "magnet"
     )
 
     private fun walkSharedStorage(maxFiles: Int = 1500): List<ScannedFile> {

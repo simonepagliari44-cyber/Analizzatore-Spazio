@@ -16,7 +16,7 @@ data class CachedScan(
 
 object ScanCache {
 
-    private const val FILE_NAME = "storage_scan_cache.json"
+    private const val FILE_NAME = "storage_scan_cache_v2.json"
 
     private val CATEGORY_COLORS_ARGB = mapOf(
         "apps" to 0xFF42A5F5.toInt(),
@@ -122,9 +122,13 @@ object ScanCache {
             sizeBytes = obj.optLong("sizeBytes", 0L),
             color = Color(ITEM_PALETTE_ARGB[colorIndex % ITEM_PALETTE_ARGB.size]),
             children = children,
-            packageName = obj.optString("packageName", null),
-            contentUri = obj.optString("contentUri", null),
-            mimeType = obj.optString("mimeType", null)
+            packageName = obj.optStringOrNull("packageName"),
+            contentUri = obj.optStringOrNull("contentUri"),
+            mimeType = obj.optStringOrNull("mimeType")
         )
+    }
+
+    private fun JSONObject.optStringOrNull(name: String): String? {
+        return if (isNull(name)) null else optString(name, null)
     }
 }

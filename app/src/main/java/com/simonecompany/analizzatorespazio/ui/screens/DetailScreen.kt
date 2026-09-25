@@ -1,8 +1,12 @@
 package com.simonecompany.analizzatorespazio.ui.screens
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.provider.MediaStore
 import android.speech.RecognizerIntent
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.BackHandler
@@ -83,36 +87,73 @@ fun DetailScreen(
                 if (intent != null) {
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     runCatching { context.startActivity(intent) }
-                        .onFailure {
-                            Toast.makeText(context, "Impossibile aprire l'app", Toast.LENGTH_SHORT).show()
+                        .onFailure { e ->
+                            Toast.makeText(context, "Apri app impossibile (${e::class.simpleName})", Toast.LENGTH_LONG).show()
                         }
                 } else {
-                    Toast.makeText(context, "Nessuna app disponibile", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Nessun avvio per ${item.packageName}", Toast.LENGTH_SHORT).show()
                 }
             }
             item.contentUri != null -> {
                 val raw = item.contentUri
-                val uri = if (raw.startsWith("file://")) {
-                    runCatching {
-                        FileProvider.getUriForFile(
-                            context,
-                            context.packageName + ".fileprovider",
-                            File(raw.removePrefix("file://"))
-                        )
-                    }.getOrNull()
-                } else {
-                    android.net.Uri.parse(raw)
+                var uri: android.net.Uri? = null
+                var fileNameForMime: String? = null
+
+                when {
+                    raw.startsWith("file://") -> {
+                        val file = File(raw.removePrefix("file://"))
+                        uri = runCatching {
+                            FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+                        }.getOrNull()
+                        fileNameForMime = file.name
+                    }
+                    raw.startsWith("content://") -> {
+                        val parsed = Uri.parse(raw)
+                        if (parsed.authority?.startsWith("media") == true) {
+                            uri = parsed
+                            fileNameForMime = item.name
+                        } else {
+                            val realPath = resolveRealPath(context, raw)
+                            val file = realPath?.let { File(it) }
+                            if (file != null && file.exists()) {
+                                uri = runCatching {
+                                    FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+                                }.getOrNull()
+                                fileNameForMime = file.name
+                            } else {
+                                uri = parsed
+                                fileNameForMime = item.name
+                            }
+                        }
+                    }
+                    else -> {
+                        uri = android.net.Uri.parse(raw)
+                        fileNameForMime = raw.substringAfterLast('/')
+                    }
                 }
+
                 if (uri != null) {
+                    val type = when {
+                        !item.mimeType.isNullOrBlank() -> item.mimeType!!
+                        !fileNameForMime.isNullOrBlank() -> inferMime(fileNameForMime!!)
+                        else -> runCatching { context.contentResolver.getType(uri) }
+                            .getOrNull() ?: "application/octet-stream"
+                    }
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, item.mimeType ?: "*/*")
+                        setDataAndType(uri, type)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     runCatching { context.startActivity(intent) }
-                        .onFailure {
-                            Toast.makeText(context, "Nessuna app per aprire questo file", Toast.LENGTH_SHORT).show()
-                        }
+                    .onFailure { e ->
+                        runCatching { context.startActivity(Intent.createChooser(intent, "Apri con")) }
+                            .onFailure { e2 ->
+                                Toast.makeText(
+                                    context,
+                                    "Apri impossibile (${e2::class.simpleName})",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                    }
                 } else {
                     Toast.makeText(context, "File non accessibile", Toast.LENGTH_SHORT).show()
                 }
@@ -314,4 +355,54 @@ private fun Long.toFormatted(): String {
         mb >= 1.0 -> String.format("%.1f MB", mb)
         else -> String.format("%.0f KB", this / 1024.0)
     }
+}
+
+private val EXTENSION_MIME = mapOf(
+    "jpg" to "image/jpeg", "jpeg" to "image/jpeg", "png" to "image/png",
+    "gif" to "image/gif", "webp" to "image/webp", "heic" to "image/heic",
+    "heif" to "image/heif", "bmp" to "image/bmp", "svg" to "image/svg+xml",
+    "mp4" to "video/mp4", "mkv" to "video/x-matroska", "mov" to "video/quicktime",
+    "avi" to "video/x-msvideo", "webm" to "video/webm", "3gp" to "video/3gpp",
+    "mp3" to "audio/mpeg", "wav" to "audio/x-wav", "flac" to "audio/flac",
+    "aac" to "audio/aac", "ogg" to "audio/ogg", "m4a" to "audio/mp4",
+    "pdf" to "application/pdf",
+    "doc" to "application/msword",
+    "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xls" to "application/vnd.ms-excel",
+    "xlsx" to "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "ppt" to "application/vnd.ms-powerpoint",
+    "pptx" to "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "txt" to "text/plain", "csv" to "text/csv",
+    "rtf" to "application/rtf", "odt" to "application/vnd.oasis.opendocument.text",
+    "zip" to "application/zip", "rar" to "application/vnd.rar",
+    "7z" to "application/x-7z-compressed",
+    "apk" to "application/vnd.android.package-archive",
+    "iso" to "application/x-iso9660-image", "bin" to "application/octet-stream",
+    "ttf" to "font/ttf", "html" to "text/html", "htm" to "text/html"
+)
+
+private fun inferMime(fileName: String): String {
+    val ext = fileName.substringAfterLast('.', "").lowercase()
+    return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+        ?: EXTENSION_MIME[ext]
+        ?: "application/octet-stream"
+}
+
+private fun resolveRealPath(context: Context, contentUriRaw: String): String? {
+    return runCatching {
+        val uri = android.net.Uri.parse(contentUriRaw)
+        var path: String? = null
+        context.contentResolver.query(
+            uri,
+            arrayOf(MediaStore.MediaColumns.DATA),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                path = cursor.getString(0)
+            }
+        }
+        path?.takeIf { it.isNotBlank() && File(it).exists() }
+    }.getOrNull()
 }

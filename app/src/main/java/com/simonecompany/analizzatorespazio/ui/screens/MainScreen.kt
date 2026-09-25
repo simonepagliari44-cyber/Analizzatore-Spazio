@@ -68,14 +68,23 @@ fun MainScreen(
 
     var permissionRequested by remember { mutableStateOf(false) }
 
-    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        arrayOf(
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.READ_MEDIA_AUDIO
-        )
-    } else {
-        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    val permissions = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+            arrayOf(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_AUDIO
+            )
+        }
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        else -> {
+            arrayOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -110,6 +119,22 @@ fun MainScreen(
             permissionRequested = true
             viewModel.onMediaPermissionRequested()
             permissionLauncher.launch(permissions)
+        }
+    }
+
+    var fullAccessRequested by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.fullStorageAccessGranted, state.isLoading) {
+        if (!state.isLoading &&
+            !state.fullStorageAccessGranted &&
+            !fullAccessRequested
+        ) {
+            fullAccessRequested = true
+            runCatching {
+                fullAccessLauncher.launch(
+                    Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                )
+            }
         }
     }
 

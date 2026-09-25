@@ -57,19 +57,7 @@ fun AppNavHost() {
                 categoryKey = categoryKey,
                 indices = indices,
                 onBack = {
-                    if (indices.isNotEmpty()) {
-                        val parentPath = indices.dropLast(1)
-                        if (parentPath.isEmpty()) {
-                            navController.popBackStack(Destinations.MAIN, inclusive = false)
-                        } else {
-                            navController.navigate(Destinations.detailPath(categoryKey, parentPath)) {
-                                launchSingleTop = true
-                                popUpTo(Destinations.MAIN)
-                            }
-                        }
-                    } else {
-                        navController.popBackStack()
-                    }
+                    navController.popBackStack(Destinations.MAIN, inclusive = false)
                 },
                 viewModel = viewModel
             )

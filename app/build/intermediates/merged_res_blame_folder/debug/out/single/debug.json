@@ -8,8 +8,12 @@
         "source": "/home/codespace/.gradle/daemon/8.5/com.simonecompany.analizzatorespazio.app-main-53:/mipmap-anydpi-v26/ic_launcher.xml"
     },
     {
-        "merged": "com.simonecompany.analizzatorespazio.app-merged_res-51:/xml_file_paths.xml.flat",
-        "source": "com.simonecompany.analizzatorespazio.app-main-53:/xml/file_paths.xml"
+        "merged": "com.simonecompany.analizzatorespazio.app-merged_res-51:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.simonecompany.analizzatorespazio.app-main-53:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "/home/codespace/.gradle/daemon/8.5/com.simonecompany.analizzatorespazio.app-merged_res-51:/xml_file_paths.xml.flat",
+        "source": "/home/codespace/.gradle/daemon/8.5/com.simonecompany.analizzatorespazio.app-main-53:/xml/file_paths.xml"
     },
     {
         "merged": "/home/codespace/.gradle/daemon/8.5/com.simonecompany.analizzatorespazio.app-merged_res-51:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
