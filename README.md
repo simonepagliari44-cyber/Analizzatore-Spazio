@@ -51,7 +51,11 @@ Le variabili d'ambiente da impostare sono:
 JAVA_HOME=/usr/local/sdkman/candidates/java/21.0.12+1-ms
 ANDROID_HOME=/opt/android-sdk
 
-A questo punto si esegue il comando: ./gradlew assembleDebug --no-daemon
+A questo punto si esegue:
+
+```
+./gradlew assembleDebug --no-daemon
+```
 
 📦 L'APK generato si trova in app/build/outputs/apk/debug/app-debug.apk e una copia pronta all'installazione in **Analizzatore-Spazio.apk** (root del progetto).
 
