@@ -44,18 +44,22 @@
 
 ## 🔧 Come si compila
 
-```bash
+Per compilare l'app sono necessari **JDK 21** (le versioni più nuove possono rompere Kotlin 1.9.22) e **Android SDK**.
+
+Le variabili d'ambiente da impostare sono:
+
 JAVA_HOME=/usr/local/sdkman/candidates/java/21.0.12+1-ms
 ANDROID_HOME=/opt/android-sdk
-./gradlew assembleDebug --no-daemon
 
-> ⚠️ **Nota**: per una corretta compilazione servono **JDK 21** (le versioni più nuove possono rompere Kotlin 1.9.22) e Android SDK.
+A questo punto si esegue il comando: ./gradlew assembleDebug --no-daemon
+
+📦 L'APK generato si trova in app/build/outputs/apk/debug/app-debug.apk e una copia pronta all'installazione in **Analizzatore-Spazio.apk** (root del progetto).
 
 ---
 
 ## 📲 Installazione
 
-1. Copia `Analizzatore-Spazio.apk` sul telefono 📤
+1. Copia **Analizzatore-Spazio.apk** sul telefono 📤
 2. Installa e apri l'app ✅
 3. Concedi **Accesso a tutti i file** quando richiesto 🔓
 4. Il giro di analisi parte da solo 🚀
@@ -64,20 +68,20 @@ ANDROID_HOME=/opt/android-sdk
 
 ## 📁 Struttura del progetto
 
-```
-app/src/main/java/com/simonecompany/analizzatorespazio/
-├── MainActivity.kt                    🏠 Activity principale
-├── AnalizzatoreSpazioApp.kt           💉 Applicazione
-├── ui/
-│   ├── navigation/AppNavigation.kt    🧭 Navigazione (Home ⇄ Dettaglio)
-│   ├── screens/
-│   │   ├── MainScreen.kt              📊 Home con donut + legenda
-│   │   └── DetailScreen.kt            🔍 Dettaglio categoria e apertura file
-│   └── components/
-│       ├── DonutChart.kt              🍩 Grafico ad anello
-│       └── LegendList.kt              🏷️ Legenda con percentuali
-└── viewmodel/
-    ├── StorageViewModel.kt            📦 Logica di scansione e categorie
-    ├── StateHolders.kt                🧠 Stato UI
-    └── ScanCache.kt                   💾 Cache delle analisi
+La struttura principale del codice si trova in app/src/main/java/com/simonecompany/analizzatorespazio/ ed è organizzata così:
+
+📱 MainActivity.kt → Activity principale
+💉 AnalizzatoreSpazioApp.kt → Applicazione
+
+🧭 ui/navigation/AppNavigation.kt → Navigazione tra Home e Dettaglio
+
+📊 ui/screens/MainScreen.kt → Home con grafico ad anello e legenda
+🔍 ui/screens/DetailScreen.kt → Dettaglio categoria e apertura dei file
+
+🍩 ui/components/DonutChart.kt → Grafico ad anello
+🏷️ ui/components/LegendList.kt → Legenda con percentuali
+
+📦 viewmodel/StorageViewModel.kt → Logica di scansione e categorie
+🧠 viewmodel/StateHolders.kt → Stato dell'interfaccia
+💾 viewmodel/ScanCache.kt → Cache delle analisi
 
