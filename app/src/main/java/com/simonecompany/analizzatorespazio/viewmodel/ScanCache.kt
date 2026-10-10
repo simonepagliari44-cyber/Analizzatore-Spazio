@@ -16,7 +16,7 @@ data class CachedScan(
 
 object ScanCache {
 
-    private const val FILE_NAME = "storage_scan_cache_v2.json"
+    private const val FILE_NAME = "storage_scan_cache_v3.json"
 
     private val CATEGORY_COLORS_ARGB = mapOf(
         "apps" to 0xFF42A5F5.toInt(),

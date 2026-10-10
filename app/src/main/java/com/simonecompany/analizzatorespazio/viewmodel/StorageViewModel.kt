@@ -6,7 +6,6 @@ import android.app.usage.StorageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.Environment
 import android.os.Process
@@ -366,10 +365,13 @@ class StorageViewModel(private val appContext: Context) : ViewModel() {
         val ssm = if (usageAccess) {
             appContext.getSystemService(Context.STORAGE_STATS_SERVICE) as StorageStatsManager
         } else null
+        val countedUids = mutableSetOf<Int>()
 
         for (appInfo in installed) {
             try {
                 if (appInfo.uid <= 0) continue
+                if (!countedUids.add(appInfo.uid)) continue
+
                 var size = 0L
 
                 if (ssm != null) {
@@ -403,25 +405,24 @@ class StorageViewModel(private val appContext: Context) : ViewModel() {
             } catch (_: Exception) { }
         }
 
-        val base = items
+        return items
             .sortedByDescending { it.sizeBytes }
             .take(60)
             .mapIndexed { index, item ->
                 item.copy(color = ITEM_PALETTE[index % ITEM_PALETTE.size])
             }
-
-        return base.ifEmpty {
-            val total = getTotalStorageBytes()
-            val emulated = total / 100 * 18
-            listOf(
-                StorageItem(
-                    name = "App installate",
-                    description = "Concedi l'accesso all'utilizzo per dimensioni complete",
-                    sizeBytes = emulated,
-                    color = ITEM_PALETTE[0]
+            .ifEmpty {
+                val total = getTotalStorageBytes()
+                val emulated = total / 100 * 18
+                listOf(
+                    StorageItem(
+                        name = "App installate",
+                        description = "Concedi l'accesso all'utilizzo per dimensioni complete",
+                        sizeBytes = emulated,
+                        color = ITEM_PALETTE[0]
+                    )
                 )
-            )
-        }
+            }
     }
 
     private data class MediaFile(
