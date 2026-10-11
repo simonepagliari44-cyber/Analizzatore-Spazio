@@ -1,0 +1,41 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+.cxx/
+captures/
+
+# Android build output
+/app/build/
+/app/release/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Local SDK / signing
+local.properties
+*.jks
+*.keystore
+keystore.properties
+
+# Kotlin
+.kotlin/
+kotlin-error.log
+
+# Native
+.externalNativeBuild/
+obj/
+libs/*.so
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db

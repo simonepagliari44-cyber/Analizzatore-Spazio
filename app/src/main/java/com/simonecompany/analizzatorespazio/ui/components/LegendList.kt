@@ -54,10 +54,14 @@ fun CategoryLegendList(
                 category.totalSizeBytes.toFloat() / totalSizeBytes * 100f
             } else 0f
 
+            val appCount = if (category.key == "apps" || category.key == "system") {
+                category.items.size
+            } else 0
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = !category.isSystem) {
+                    .clickable(enabled = !category.isSystem || category.items.isNotEmpty()) {
                         onCategoryClick(category.key)
                     },
                 colors = CardDefaults.cardColors(
@@ -86,12 +90,19 @@ fun CategoryLegendList(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = String.format("%.2f%%  •  %s", percentage, category.totalSizeFormatted()),
+                            text = if (appCount > 0) {
+                                String.format(
+                                    "%.2f%%  •  %s  •  %d app",
+                                    percentage, category.totalSizeFormatted(), appCount
+                                )
+                            } else {
+                                String.format("%.2f%%  •  %s", percentage, category.totalSizeFormatted())
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    if (!category.isSystem) {
+                    if (!category.isSystem || category.items.isNotEmpty()) {
                         Text(
                             text = "›",
                             style = MaterialTheme.typography.titleLarge,

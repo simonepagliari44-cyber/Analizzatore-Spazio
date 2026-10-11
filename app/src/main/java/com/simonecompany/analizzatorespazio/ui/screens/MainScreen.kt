@@ -204,6 +204,10 @@ fun MainScreen(
                     state.usedStorageBytes.toFloat() / state.totalStorageBytes * 100f
                 } else 0f
 
+                val totalAppCount = state.categories
+                    .filter { it.key == "apps" || it.key == "system" }
+                    .sumOf { it.items.size }
+
                 val activeCategories = state.categories.filter { it.totalSizeBytes > 0L }
                 val activeTotal = activeCategories.sumOf { it.totalSizeBytes.toDouble() }.toFloat()
 
@@ -242,6 +246,12 @@ fun MainScreen(
                                 )
                                 Text(
                                     text = String.format("%.1f%% in uso", usedPct),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "$totalAppCount app totali",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center

@@ -23,13 +23,13 @@
 
 | Icona | Categoria | Colore | Contenuto |
 |-------|-----------|--------|-----------|
-| 📱 | **Applicazioni** | 🔵 | App installate (utente e di sistema), con possibilità di avvio diretto |
+| 📱 | **App utente** | 🔵 | App installate dall'utente, con possibilità di avvio diretto |
 | 📸 | **Foto** | 🟢 | Immagini raggruppate per album |
 | 🎬 | **Video** | 🟠 | Video raggruppati per album |
 | 🎵 | **Audio** | 🟣 | Brani e registrazioni |
 | 📄 | **Documenti** | 🔴 | PDF, Word, Excel, PowerPoint, Testo, Archivi, APK |
 | 📚 | **Altro** | ⚪ | Ogni altro tipo di file (EXE, ISO, BIN, DAT…) |
-| ⚙️ | **Sistema** | 🩶 | Componenti di sistema non app (OS, cache…) = usato − categorie |
+| ⚙️ | **Sistema** | 🩶 | App di sistema + spazio del sistema (OS, cache…) = usato − app utente e categorie |
 
 ---
 

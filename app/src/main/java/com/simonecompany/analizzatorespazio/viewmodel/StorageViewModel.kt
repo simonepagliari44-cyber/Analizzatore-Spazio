@@ -6,6 +6,7 @@ import android.app.usage.StorageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.Environment
 import android.os.Process
@@ -312,7 +313,9 @@ class StorageViewModel(private val appContext: Context) : ViewModel() {
         val used = (total - free).coerceAtLeast(0)
 
         val usageAccess = hasUsageAccess()
-        val apps = loadApps(usageAccess)
+        val appsScan = loadApps(usageAccess)
+        val userApps = appsScan.userApps
+        val systemApps = appsScan.systemApps
         val photos = loadMediaGrouped(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "Foto")
         val videos = loadMediaGrouped(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, "Video")
         val audio = loadAudio()
@@ -331,12 +334,12 @@ class StorageViewModel(private val appContext: Context) : ViewModel() {
             videos.sumOf { it.sizeBytes } +
             audio.sumOf { it.sizeBytes }
 
-        val totalApps = if (usageAccess) apps.sumOf { it.sizeBytes } else 0L
+        val totalApps = if (usageAccess) appsScan.userBytes else 0L
         val accounted = totalApps + mediaTotal + totalDocs + totalOther
-        val systemSize = (used - accounted).coerceAtLeast(0)
+        val systemSize = (used - accounted).coerceAtLeast(0) + appsScan.systemAppBytes
 
         val categories = mutableListOf(
-            StorageCategory("apps", "Applicazioni", "\uD83D\uDCF1", Color(0xFF42A5F5), totalApps, apps),
+            StorageCategory("apps", "App utente", "\uD83D\uDCF1", Color(0xFF42A5F5), totalApps, userApps),
             StorageCategory("photos", "Foto", "\uD83D\uDCF7", Color(0xFF66BB6A), photos.sumOf { it.sizeBytes }, photos),
             StorageCategory("videos", "Video", "\uD83C\uDFAC", Color(0xFFFFA726), videos.sumOf { it.sizeBytes }, videos),
             StorageCategory("audio", "Audio", "\uD83C\uDFB5", Color(0xFFAB47BC), audio.sumOf { it.sizeBytes }, audio),
@@ -351,78 +354,115 @@ class StorageViewModel(private val appContext: Context) : ViewModel() {
 
         categories += StorageCategory(
             "system", "Sistema", "\u2699\uFE0F", Color(0xFF78909C),
-            systemSize, emptyList(), isSystem = true
+            systemSize, systemApps, isSystem = true
         )
 
         return ScanResult(categories, total, used)
     }
 
-    private fun loadApps(usageAccess: Boolean = hasUsageAccess()): List<StorageItem> {
+    private data class AppStat(val size: Long, val appBytes: Long)
+
+    private data class AppsScan(
+        val userApps: List<StorageItem>,
+        val systemApps: List<StorageItem>,
+        val userBytes: Long,
+        val systemAppBytes: Long
+    )
+
+    private fun loadApps(usageAccess: Boolean = hasUsageAccess()): AppsScan {
         val pm = appContext.packageManager
-        val items = mutableListOf<StorageItem>()
+        val userItems = mutableListOf<StorageItem>()
+        val systemItems = mutableListOf<StorageItem>()
+        var userBytes = 0L
+        var systemAppBytes = 0L
         val installed = pm.getInstalledApplications(PackageManager.GET_META_DATA)
         val storageUuid = resolveStorageUuid()
         val ssm = if (usageAccess) {
             appContext.getSystemService(Context.STORAGE_STATS_SERVICE) as StorageStatsManager
         } else null
+        val statsByUid = mutableMapOf<Int, AppStat>()
         val countedUids = mutableSetOf<Int>()
 
         for (appInfo in installed) {
             try {
                 if (appInfo.uid <= 0) continue
-                if (!countedUids.add(appInfo.uid)) continue
+                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
 
-                var size = 0L
-
-                if (ssm != null) {
-                    try {
-                        val stats = ssm.queryStatsForUid(storageUuid, appInfo.uid)
-                        size = stats.appBytes + stats.dataBytes - stats.cacheBytes
-                    } catch (_: Exception) { }
+                val stat = statsByUid.getOrPut(appInfo.uid) {
+                    var size = 0L
+                    var appBytes = 0L
+                    if (ssm != null) {
+                        try {
+                            val s = ssm.queryStatsForUid(storageUuid, appInfo.uid)
+                            appBytes = s.appBytes
+                            size = s.appBytes + s.dataBytes - s.cacheBytes
+                        } catch (_: Exception) { }
+                    }
+                    if (size <= 0L) {
+                        val apk = appInfo.sourceDir
+                        if (apk != null) {
+                            val f = java.io.File(apk)
+                            if (f.exists()) {
+                                size = f.length()
+                                appBytes = size
+                            }
+                        }
+                    }
+                    AppStat(size, appBytes)
                 }
 
-                if (size <= 0L) {
-                    val apk = appInfo.sourceDir
-                    if (apk != null) {
-                        val f = java.io.File(apk)
-                        if (f.exists()) size = f.length()
+                if (stat.size <= 0L) continue
+
+                if (countedUids.add(appInfo.uid)) {
+                    if (isSystem) {
+                        val apkPath = appInfo.sourceDir
+                        val apkOnData = apkPath != null && apkPath.startsWith("/data/")
+                        if (!apkOnData) systemAppBytes += stat.appBytes
+                    } else {
+                        userBytes += stat.size
                     }
                 }
 
-                if (size > 0L) {
-                    val label = pm.getApplicationLabel(appInfo).toString()
-                    val note = if (!usageAccess) "dimensione APK (stima)" else appInfo.packageName
-                    items.add(
-                        StorageItem(
-                            name = label,
-                            description = note,
-                            sizeBytes = size,
-                            color = Color.Unspecified,
-                            packageName = appInfo.packageName
-                        )
-                    )
-                }
+                val label = pm.getApplicationLabel(appInfo).toString()
+                val note = if (!usageAccess) "dimensione APK (stima)" else appInfo.packageName
+                val item = StorageItem(
+                    name = label,
+                    description = note,
+                    sizeBytes = stat.size,
+                    color = Color.Unspecified,
+                    packageName = appInfo.packageName
+                )
+                if (isSystem) systemItems += item else userItems += item
             } catch (_: Exception) { }
         }
 
-        return items
-            .sortedByDescending { it.sizeBytes }
-            .take(60)
-            .mapIndexed { index, item ->
-                item.copy(color = ITEM_PALETTE[index % ITEM_PALETTE.size])
-            }
-            .ifEmpty {
-                val total = getTotalStorageBytes()
-                val emulated = total / 100 * 18
-                listOf(
-                    StorageItem(
-                        name = "App installate",
-                        description = "Concedi l'accesso all'utilizzo per dimensioni complete",
-                        sizeBytes = emulated,
-                        color = ITEM_PALETTE[0]
-                    )
+        val decorate = { items: List<StorageItem> ->
+            items
+                .sortedByDescending { it.sizeBytes }
+                .mapIndexed { index, item ->
+                    item.copy(color = ITEM_PALETTE[index % ITEM_PALETTE.size])
+                }
+        }
+
+        val userApps = decorate(userItems).ifEmpty {
+            val total = getTotalStorageBytes()
+            val emulated = total / 100 * 18
+            listOf(
+                StorageItem(
+                    name = "App installate",
+                    description = "Concedi l'accesso all'utilizzo per dimensioni complete",
+                    sizeBytes = emulated,
+                    color = ITEM_PALETTE[0]
                 )
-            }
+            )
+        }
+
+        return AppsScan(
+            userApps = userApps,
+            systemApps = decorate(systemItems),
+            userBytes = userBytes,
+            systemAppBytes = systemAppBytes
+        )
     }
 
     private data class MediaFile(
